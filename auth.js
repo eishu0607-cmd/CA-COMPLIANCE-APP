@@ -58,11 +58,7 @@ const firmResult = insertFirm.run(firmName, expiryDate.toISOString());
   const salt = crypto.randomBytes(16).toString('hex');
   const passwordHash = hashPassword(password, salt);
 
-  const insertUser = db.prepare(
-    `INSERT INTO users (firm_id, name, email, password_hash, salt, role) VALUES (?, ?, ?, ?, ?, 'owner')`
-  );
-  const userResult = insertUser.run(firmId, name, email, passwordHash, salt);
-
+const insertUser = db.prepare('INSERT INTO users (firm_id, name, email, password_hash, salt, role) VALUES (?, ?, ?, ?, ?, ?)');
   return { userId: userResult.lastInsertRowid, firmId };
 }
 
