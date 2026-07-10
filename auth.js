@@ -5,7 +5,8 @@ const db = new Database('database.db');
 db.exec(`
   CREATE TABLE IF NOT EXISTS firms (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL
+    name TEXT NOT NULL,
+    subscription_expires_at TEXT NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS users (
