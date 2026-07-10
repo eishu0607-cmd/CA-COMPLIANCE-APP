@@ -37,8 +37,12 @@ db.exec(`
     FOREIGN KEY(user_id) REFERENCES users(id)
   );
 `);
-  const insertFirm = db.prepare('INSERT INTO firms (name) VALUES (?)');
-  const firmResult = insertFirm.run(firmName);
+
+const expiryDate = new Date();
+expiryDate.setDate(expiryDate.getDate() + 30); 
+
+const insertFirm = db.prepare('INSERT INTO firms (name, subscription_expires_at) VALUES (?, ?)');
+const firmResult = insertFirm.run(firmName, expiryDate.toISOString());
   const firmId = firmResult.lastInsertRowid;
 
   const salt = crypto.randomBytes(16).toString('hex');
