@@ -1,82 +1,78 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Document Upload Portal</title>
-<link rel="stylesheet" href="/style.css">
-</head>
-<body>
-<div class="portal-wrap">
-  <div class="card">
-    <h1 id="clientName">Loading...</h1>
-    <p class="subtitle" id="clientGstin"></p>
+# CA-COMPLIANCE-APP
 
-    <h3>Upload your documents</h3>
-    <p style="font-size:13px;color:#6b7280;">Upload sales/purchase invoices or any documents your CA has requested for the current filing period.</p>
-    <div class="upload-row">
-      <input type="file" id="fileInput">
-      <button class="small-btn" id="uploadBtn">Upload</button>
-    </div>
-    <div id="uploadStatus" style="font-size:13px;margin-top:8px;"></div>
-  </div>
+A robust web application designed for Chartered Accountants (CAs) and financial firms to efficiently track client deadlines, manage portal authentications, and streamline compliance workflows.
 
-  <div class="card">
-    <h3>Your recent filings</h3>
-    <table id="deadlinesTable">
-      <thead><tr><th>Return</th><th>Period</th><th>Due Date</th><th>Status</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
-</div>
+---
 
-<script>
-const params = new URLSearchParams(window.location.search);
-const token = params.get('token');
+## 🚀 Features
 
-async function loadPortal() {
-  if (!token) {
-    document.getElementById('clientName').textContent = 'Invalid link';
-    return;
-  }
-  const res = await fetch(`/api/portal/${token}`);
-  if (!res.ok) {
-    document.getElementById('clientName').textContent = 'Invalid or expired link';
-    return;
-  }
-  const data = await res.json();
-  document.getElementById('clientName').textContent = data.client.name;
-  document.getElementById('clientGstin').textContent = data.client.gstin || '';
+- **Firm & User Registration:** Multi-tenant setup matching users to their respective professional firms.
+- **Role-Based Access Control:** Secure user permissions built directly into account management.
+- **Deadline Tracking:** Dedicated system to monitor critical statutory filings and client tasks.
+- **Session Management:** Secure token-based session tracking for active login compliance.
 
-  const tbody = document.querySelector('#deadlinesTable tbody');
-  tbody.innerHTML = '';
-  for (const d of data.deadlines) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${d.return_type}</td><td>${d.period_label}</td><td>${d.due_date}</td><td><span class="badge ${d.status}">${d.status.replace('_',' ')}</span></td>`;
-    tbody.appendChild(tr);
-  }
-}
+---
 
-document.getElementById('uploadBtn').addEventListener('click', async () => {
-  const fileInput = document.getElementById('fileInput');
-  const statusEl = document.getElementById('uploadStatus');
-  if (!fileInput.files.length) {
-    statusEl.textContent = 'Choose a file first.';
-    return;
-  }
-  const formData = new FormData();
-  formData.append('token', token);
-  formData.append('file', fileInput.files[0]);
-  statusEl.textContent = 'Uploading...';
-  const res = await fetch('/api/portal-upload', { method: 'POST', body: formData });
-  if (res.ok) {
-    statusEl.textContent = 'Uploaded successfully.';
-    fileInput.value = '';
-  } else {
-    statusEl.textContent = 'Upload failed. Please try again.';
-  }
-});
+## 🛠️ Tech Stack
 
-loadPortal();
-</script>
-</body>
-</html>
+- **Backend:** Node.js, Express
+- **Database:** SQLite via `better-sqlite3`
+- **Authentication:** Crypto-based password hashing (Scrypt) with secure salts and tokens
+- **Hosting/Deployment:** Render
+
+---
+
+## 📂 Project Structure
+
+```text
+├── public/               # Static assets (images, global icons)
+├── auth.js               # Database schema initialization and auth controllers
+├── db.js                 # Database configuration module
+├── server.js             # Main Express application server entrypoint
+├── package.json          # Node dependencies and project metadata
+├── clients.html          # Client management interface
+├── deadlines.html        # Compliance deadlines dashboard
+├── deadlines.js          # Deadlines page client logic
+├── login.html            # User login panel
+├── portal.html           # Main user portal dashboard
+├── reminders.js          # Notification and reminder utility scripts
+├── signup.html           # Firm registration/setup workflow
+└── style.css             # Unified application styling stylesheet
+```
+
+---
+
+## 💻 Local Setup Instructions
+
+### 1. Prerequisites
+Ensure you have [Node.js](https://nodejs.org) installed on your machine.
+
+### 2. Clone the Repository
+```bash
+git clone https://github.com
+cd CA-COMPLIANCE-APP
+```
+
+### 3. Install Dependencies
+```bash
+npm install
+```
+
+### 4. Run the Application
+```bash
+npm start
+```
+The server will initialize your SQLite database (`database.db`) automatically and begin listening on your specified port (typically `http://localhost:3000`).
+
+---
+
+## 🌐 Production Deployment (Render)
+
+This application is configured for deployment on **Render**. 
+
+### Deployment Configurations:
+- **Environment:** Node
+- **Build Command:** `npm install`
+- **Start Command:** `node server.js`
+
+⚠️ **Important Note on Persistence:** Because SQLite stores data in a local file (`database.db`), ensure your Render Web Service utilizes a **Persistent Disk** mounted at your root project directory to avoid losing data between server restarts or automatic redeployments.
