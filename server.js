@@ -4,7 +4,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { URL } = require('node:url');
  
-const db = require('./db');
+const {db} = require('./auth');
 const auth = require('./auth');
 const { generateDeadlinesForClient } = require('./deadlines');
 const { runRemindersSweep } = require('./reminders');
