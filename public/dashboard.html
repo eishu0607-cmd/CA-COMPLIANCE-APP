@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard - CA Compliance Tracker</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <div class="sidebar">
+    <h2 id="firmName">Loading...</h2>
+    <div class="firm-name" id="userName"></div>
+    <nav>
+      <a href="/dashboard.html" class="active">Dashboard</a>
+      <a href="/clients.html">Clients</a>
+      <a href="/deadlines.html">All Deadlines</a>
+    </nav>
+    <button class="logout-btn" id="logoutBtn">Log out</button>
+  </div>
+
+  <div class="main">
+    <h1>Dashboard</h1>
+    <p class="subtitle">Overview of your firm's filing status</p>
+
+    <div class="stat-grid">
+      <div class="stat-card overdue">
+        <div class="num" id="statOverdue">-</div>
+        <div class="label">Overdue Filings</div>
+      </div>
+      <div class="stat-card upcoming">
+        <div class="num" id="statUpcoming">-</div>
+        <div class="label">Due in 14 Days</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="statClients">-</div>
+        <div class="label">Total Clients</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="statFiled">-</div>
+        <div class="label">Filed This Month</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>Overdue (act now)</h3>
+      </div>
+      <table id="overdueTable">
+        <thead><tr><th>Client</th><th>Return</th><th>Period</th><th>Due Date</th><th>Status</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty-state" id="overdueEmpty" style="display:none;">Nothing overdue. Good work.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>Due in the next 14 days</h3>
+        <button class="small-btn secondary" id="runRemindersBtn">Send reminders now</button>
+      </div>
+      <table id="upcomingTable">
+        <thead><tr><th>Client</th><th>Return</th><th>Period</th><th>Due Date</th><th>Status</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty-state" id="upcomingEmpty" style="display:none;">Nothing due in the next 2 weeks.</div>
+    </div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+<script>
+async function loadDashboard() {
+  await requireLogin();
+  const summary = await api('/api/dashboard/summary');
+  document.getElementById('statOverdue').textContent = summary.overdueCount;
+  document.getElementById('statUpcoming').textContent = summary.upcomingCount;
+  document.getElementById('statClients').textContent = summary.totalClients;
+  document.getElementById('statFiled').textContent = summary.filedThisMonth;
+
+  const overdue = await api('/api/deadlines?status=overdue');
+  renderDeadlineTable('overdueTable', 'overdueEmpty', overdue);
+
+  const upcoming = await api('/api/deadlines?status=upcoming');
+  renderDeadlineTable('upcomingTable', 'upcomingEmpty', upcoming);
+}
+
+function renderDeadlineTable(tableId, emptyId, rows) {
+  const tbody = document.querySelector(`#${tableId} tbody`);
+  tbody.innerHTML = '';
+  document.getElementById(emptyId).style.display = rows.length ? 'none' : 'block';
+  document.getElementById(tableId).style.display = rows.length ? 'table' : 'none';
+  for (const row of rows) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${row.client_name}</td>
+      <td>${row.return_type}</td>
+      <td>${row.period_label}</td>
+      <td>${row.due_date}</td>
+      <td>${statusSelectHTML(row.id, row.status)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+  tbody.querySelectorAll('select.status-select').forEach((sel) => {
+    sel.addEventListener('change', async (e) => {
+      await api(`/api/deadlines/${e.target.dataset.id}`, 'PATCH', { status: e.target.value });
+      loadDashboard();
+    });
+  });
+}
+
+function statusSelectHTML(id, current) {
+  const options = [
+    ['not_started', 'Not Started'],
+    ['docs_collected', 'Docs Collected'],
+    ['filed', 'Filed'],
+  ];
+  return `<select class="status-select" data-id="${id}">
+    ${options.map(([val, label]) => `<option value="${val}" ${val === current ? 'selected' : ''}>${label}</option>`).join('')}
+  </select>`;
+}
+
+document.getElementById('runRemindersBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('runRemindersBtn');
+  btn.textContent = 'Sending...';
+  const result = await api('/api/reminders/run', 'POST');
+  btn.textContent = 'Send reminders now';
+  alert(`Reminder sweep complete. ${result.sent} reminder(s) processed. (Check server console — no live channel configured yet, see lib/reminders.js)`);
+});
+
+loadDashboard();
+</script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Clients - CA Compliance Tracker</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <div class="sidebar">
+    <h2 id="firmName">Loading...</h2>
+    <div class="firm-name" id="userName"></div>
+    <nav>
+      <a href="/dashboard.html">Dashboard</a>
+      <a href="/clients.html" class="active">Clients</a>
+      <a href="/deadlines.html">All Deadlines</a>
+    </nav>
+    <button class="logout-btn" id="logoutBtn">Log out</button>
+  </div>
+
+  <div class="main">
+    <h1>Clients</h1>
+    <p class="subtitle">Manage your firm's client list and their GST filing calendars</p>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>All clients</h3>
+        <button class="small-btn" id="addClientBtn">+ Add client</button>
+      </div>
+      <table id="clientsTable">
+        <thead><tr><th>Name</th><th>GSTIN</th><th>Phone</th><th>Filing Frequency</th><th>Document Portal Link</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty-state" id="clientsEmpty" style="display:none;">No clients yet. Add your first one to auto-generate their filing calendar.</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <h3>Add a new client</h3>
+    <form id="addClientForm">
+      <label for="c_name">Client / business name</label>
+      <input type="text" id="c_name" required>
+      <label for="c_gstin">GSTIN</label>
+      <input type="text" id="c_gstin" placeholder="15-character GSTIN">
+      <label for="c_phone">Phone (for WhatsApp/SMS reminders)</label>
+      <input type="text" id="c_phone" placeholder="+91...">
+      <label for="c_email">Email</label>
+      <input type="email" id="c_email">
+      <label for="c_freq">Filing frequency</label>
+      <select id="c_freq">
+        <option value="monthly">Monthly</option>
+        <option value="quarterly">Quarterly (QRMP)</option>
+      </select>
+      <div class="modal-actions">
+        <button type="button" class="small-btn secondary" id="cancelAdd">Cancel</button>
+        <button type="submit" class="small-btn">Add client</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+<script>
+let clientsCache = [];
+
+async function loadClients() {
+  await requireLogin();
+  clientsCache = await api('/api/clients');
+  const tbody = document.querySelector('#clientsTable tbody');
+  tbody.innerHTML = '';
+  document.getElementById('clientsEmpty').style.display = clientsCache.length ? 'none' : 'block';
+  document.getElementById('clientsTable').style.display = clientsCache.length ? 'table' : 'none';
+
+  for (const c of clientsCache) {
+    const portalUrl = `${window.location.origin}/portal.html?token=${c.portal_token}`;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${c.name}</td>
+      <td>${c.gstin || '-'}</td>
+      <td>${c.phone || '-'}</td>
+      <td>${c.filing_frequency === 'monthly' ? 'Monthly' : 'Quarterly (QRMP)'}</td>
+      <td><button class="small-btn secondary copy-link" data-url="${portalUrl}">Copy link</button></td>
+      <td><button class="small-btn danger delete-client" data-id="${c.id}">Delete</button></td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  tbody.querySelectorAll('.copy-link').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(btn.dataset.url);
+      btn.textContent = 'Copied!';
+      setTimeout(() => (btn.textContent = 'Copy link'), 1500);
+    });
+  });
+
+  tbody.querySelectorAll('.delete-client').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Delete this client and all their filing history?')) return;
+      await api(`/api/clients/${btn.dataset.id}`, 'DELETE');
+      loadClients();
+    });
+  });
+}
+
+document.getElementById('addClientBtn').addEventListener('click', () => {
+  document.getElementById('addModal').classList.add('open');
+});
+document.getElementById('cancelAdd').addEventListener('click', () => {
+  document.getElementById('addModal').classList.remove('open');
+});
+
+document.getElementById('addClientForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  await api('/api/clients', 'POST', {
+    name: document.getElementById('c_name').value,
+    gstin: document.getElementById('c_gstin').value,
+    phone: document.getElementById('c_phone').value,
+    email: document.getElementById('c_email').value,
+    filing_frequency: document.getElementById('c_freq').value,
+  });
+  document.getElementById('addModal').classList.remove('open');
+  document.getElementById('addClientForm').reset();
+  loadClients();
+});
+
+loadClients();
+</script>
+</body>
+</html>

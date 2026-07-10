@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>All Deadlines - CA Compliance Tracker</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <div class="sidebar">
+    <h2 id="firmName">Loading...</h2>
+    <div class="firm-name" id="userName"></div>
+    <nav>
+      <a href="/dashboard.html">Dashboard</a>
+      <a href="/clients.html">Clients</a>
+      <a href="/deadlines.html" class="active">All Deadlines</a>
+    </nav>
+    <button class="logout-btn" id="logoutBtn">Log out</button>
+  </div>
+
+  <div class="main">
+    <h1>All Deadlines</h1>
+    <p class="subtitle">Full filing calendar across every client</p>
+
+    <div class="card">
+      <table id="allTable">
+        <thead><tr><th>Client</th><th>Return</th><th>Period</th><th>Due Date</th><th>Status</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty-state" id="allEmpty" style="display:none;">No deadlines yet — add a client first.</div>
+    </div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+<script>
+async function loadAll() {
+  await requireLogin();
+  const rows = await api('/api/deadlines?status=all');
+  const tbody = document.querySelector('#allTable tbody');
+  tbody.innerHTML = '';
+  document.getElementById('allEmpty').style.display = rows.length ? 'none' : 'block';
+  document.getElementById('allTable').style.display = rows.length ? 'table' : 'none';
+
+  const today = new Date().toISOString().slice(0, 10);
+  for (const row of rows) {
+    const isOverdue = row.due_date < today && row.status !== 'filed';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${row.client_name}</td>
+      <td>${row.return_type}</td>
+      <td>${row.period_label}</td>
+      <td>${row.due_date} ${isOverdue ? '<span class="badge overdue">OVERDUE</span>' : ''}</td>
+      <td>${statusSelectHTML(row.id, row.status)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+  tbody.querySelectorAll('select.status-select').forEach((sel) => {
+    sel.addEventListener('change', async (e) => {
+      await api(`/api/deadlines/${e.target.dataset.id}`, 'PATCH', { status: e.target.value });
+      loadAll();
+    });
+  });
+}
+
+function statusSelectHTML(id, current) {
+  const options = [
+    ['not_started', 'Not Started'],
+    ['docs_collected', 'Docs Collected'],
+    ['filed', 'Filed'],
+  ];
+  return `<select class="status-select" data-id="${id}">
+    ${options.map(([val, label]) => `<option value="${val}" ${val === current ? 'selected' : ''}>${label}</option>`).join('')}
+  </select>`;
+}
+
+loadAll();
+</script>
+</body>
+</html>
