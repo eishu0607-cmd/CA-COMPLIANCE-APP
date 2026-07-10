@@ -13,7 +13,7 @@ db.exec(`
     firm_id INTEGER,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
     FOREIGN KEY(firm_id) REFERENCES firms(id)
   );
 `);
