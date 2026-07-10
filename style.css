@@ -1,0 +1,72 @@
+const db = require('./db');
+
+// Simplified statutory due-date rules. Adjust these to match current
+// GST notifications for your clients' states/turnover categories.
+// GSTR-3B: 20th of the month following the period.
+// GSTR-1 (monthly filers): 11th of the month following the period.
+// QRMP (quarterly) filers: GSTR-1 (IFF optional monthly) + GSTR-3B by 22nd/24th
+//   of the month following the quarter, varies by state category.
+// This module generates a reasonable default calendar; treat it as a
+// starting template, not a compliance guarantee.
+
+function pad(n) {
+  return String(n).padStart(2, '0');
+}
+
+function monthLabel(year, month) {
+  const names = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+  return `${names[month]} ${year}`;
+}
+
+function addMonths(year, month, count) {
+  const total = year * 12 + month + count;
+  return { year: Math.floor(total / 12), month: ((total % 12) + 12) % 12 };
+}
+
+function generateDeadlinesForClient(clientId, filingFrequency, monthsAhead = 12) {
+  const insert = db.prepare(
+    `INSERT INTO deadlines (client_id, return_type, period_label, due_date, status)
+     VALUES (?, ?, ?, ?, 'not_started')`
+  );
+
+  const now = new Date();
+  const startYear = now.getFullYear();
+  const startMonth = now.getMonth(); // 0-indexed, this is the current period being tracked
+
+  if (filingFrequency === 'monthly') {
+    for (let i = 0; i < monthsAhead; i++) {
+      const period = addMonths(startYear, startMonth, i);
+      const dueMonth = addMonths(period.year, period.month, 1);
+
+      const gstr1Due = `${dueMonth.year}-${pad(dueMonth.month + 1)}-11`;
+      const gstr3bDue = `${dueMonth.year}-${pad(dueMonth.month + 1)}-20`;
+
+      insert.run(clientId, 'GSTR-1', monthLabel(period.year, period.month), gstr1Due);
+      insert.run(clientId, 'GSTR-3B', monthLabel(period.year, period.month), gstr3bDue);
+    }
+  } else if (filingFrequency === 'quarterly') {
+    // QRMP: file quarterly, roughly every 3 months starting from current quarter
+    const quarterStartMonth = Math.floor(startMonth / 3) * 3;
+    for (let i = 0; i < Math.ceil(monthsAhead / 3); i++) {
+      const qStart = addMonths(startYear, quarterStartMonth, i * 3);
+      const qEndMonth = addMonths(qStart.year, qStart.month, 2);
+      const dueMonth = addMonths(qEndMonth.year, qEndMonth.month, 1);
+
+      const label = `Q${Math.floor(qStart.month / 3) + 1} ${qStart.year} (${monthLabel(
+        qStart.year,
+        qStart.month
+      )} - ${monthLabel(qEndMonth.year, qEndMonth.month)})`;
+
+      const gstr1Due = `${dueMonth.year}-${pad(dueMonth.month + 1)}-13`;
+      const gstr3bDue = `${dueMonth.year}-${pad(dueMonth.month + 1)}-22`;
+
+      insert.run(clientId, 'GSTR-1 (Quarterly)', label, gstr1Due);
+      insert.run(clientId, 'GSTR-3B (Quarterly)', label, gstr3bDue);
+    }
+  }
+}
+
+module.exports = { generateDeadlinesForClient };
