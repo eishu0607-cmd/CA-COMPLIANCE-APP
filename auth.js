@@ -11,13 +11,20 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    firm_id INTEGER,
+    firm_id INTEGER NOT NULL,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     salt TEXT NOT NULL,
     role TEXT,
     FOREIGN KEY(firm_id) REFERENCES firms(id)
+  );
+  CREATE TABLE IF NOT EXISTS sessions (
+    id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    token TEXT NOT NULL,
+    expires_at INTEGER NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(id)
   );
 `);
 
