@@ -1,0 +1,10 @@
+{
+  "name": "ca-compliance-app",
+  "version": "1.0.0",
+  "description": "Compliance Tracker",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {}
+}
