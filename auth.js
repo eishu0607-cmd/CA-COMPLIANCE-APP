@@ -111,4 +111,5 @@ module.exports = {
   getUserBySession,
   destroySession,
   parseCookies,
+  db
 };
