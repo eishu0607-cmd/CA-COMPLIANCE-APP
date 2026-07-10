@@ -27,7 +27,14 @@ function hashPassword(password, salt) {
 function createUserWithFirm({ firmName, name, email, password }) {
   const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
   if (existing) throw new Error('An account with this email already exists');
-
+db.exec(`
+  CREATE TABLE IF NOT EXISTS sessions (
+    id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+  );
+`);
   const insertFirm = db.prepare('INSERT INTO firms (name) VALUES (?)');
   const firmResult = insertFirm.run(firmName);
   const firmId = firmResult.lastInsertRowid;
