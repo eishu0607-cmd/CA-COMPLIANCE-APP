@@ -35,7 +35,7 @@ db.exec(`
     status TEXT DEFAULT 'pending',
     FOREIGN KEY(firm_id) REFERENCES firms(id)
   );
-`
+`),
 `);
 
 function hashPassword(password, salt) {
