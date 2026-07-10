@@ -79,4 +79,4 @@ db.exec(`
   );
 `);
 
-module.exports = db;
+module.exports.createUserWithFirm = createUser;
