@@ -15,6 +15,7 @@ db.exec(`
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     salt TEXT NOT NULL,
+    role TEXT,
     FOREIGN KEY(firm_id) REFERENCES firms(id)
   );
 `);
