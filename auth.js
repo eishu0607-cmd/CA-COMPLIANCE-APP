@@ -26,6 +26,16 @@ db.exec(`
     expires_at INTEGER NOT NULL,
     FOREIGN KEY(user_id) REFERENCES users(id)
   );
+  
+  CREATE TABLE IF NOT EXISTS deadlines (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    firm_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    due_date TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    FOREIGN KEY(firm_id) REFERENCES firms(id)
+  );
+`
 `);
 
 function hashPassword(password, salt) {
