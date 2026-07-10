@@ -1,5 +1,6 @@
 const crypto = require('node:crypto');
-const db = require('./db');
+const Database = require('better-sqlite3');
+const db = new Database('database.db');
 
 function hashPassword(password, salt) {
   return crypto.scryptSync(password, salt, 64).toString('hex');
