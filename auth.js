@@ -2,6 +2,22 @@ const crypto = require('node:crypto');
 const Database = require('better-sqlite3');
 const db = new Database('database.db');
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS firms (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    firm_id INTEGER,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    FOREIGN KEY(firm_id) REFERENCES firms(id)
+  );
+`);
+
 function hashPassword(password, salt) {
   return crypto.scryptSync(password, salt, 64).toString('hex');
 }
