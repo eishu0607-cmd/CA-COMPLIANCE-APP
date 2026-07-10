@@ -31,6 +31,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS sessions (
     id TEXT PRIMARY KEY,
     user_id INTEGER NOT NULL,
+    token TEXT NOT NULL,
     expires_at INTEGER NOT NULL,
     FOREIGN KEY(user_id) REFERENCES users(id)
   );
